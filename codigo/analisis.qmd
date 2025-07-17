@@ -1,0 +1,84 @@
+---
+title: 'Mantodea en Uruguay'
+subtitle: 'Observaciones en NaturalistaUY'
+format: 
+  html:
+    toc: true
+    toc-location: right
+    smooth-scroll: true
+    html-math-method: katex
+    code-fold: true
+self-contained: true
+editor: source
+author: 'Florencia Grattarola'
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+editor_options: 
+  chunk_output_type: console
+---
+
+## Librerías de R
+
+```{r}
+#| label: libraries
+#| warning: false
+#| message: false
+
+library(patchwork)
+library(janitor)
+library(lubridate)
+library(tmap)
+tmap_mode('view')
+library(sf)
+sf_use_s2(FALSE)
+library(tidyverse)
+```
+
+## Datos
+
+### Descarga de datos de iNaturalist
+
+Para la descarga vamos a usar funciones hechas para descargar datos mediante la API de iNaturalist (<https://api.inaturalist.org/v1/docs/>). Esta parte también se podría hacer a través de la plataforma, pero de esta manera podemos automatizar la descarga y obtener directamente los campos que nos interesan.  
+
+Las funciones que vamos a usar van a estar en la carpeta code/funciones del repositorio de GitHub. Pueden ver acá ejemplos de reportes hechos usando estas funciones: <https://bienflorencia.github.io/LatinR2024/>.   
+
+```{r}
+#| label: datos-inat
+#| warning: false
+#| message: false
+
+
+```
+
+### Otros datos
+
+```{r}
+#| label: datos-otros
+#| warning: false
+#| message: false
+
+
+```
+
+## Limpieza de datos 
+
+Vamos a chequear una serie de campos y filtrar los datos de acuerdo a nuestras preferencias. Por ejemplo, sobre los campos: `captive`, `observed_on`, `taxon_rank`, `research_quality`, y `geoprivacy`, entre otros.
+
+```{r}
+#| label: limpieza-de-datos
+#| warning: false
+#| message: false
+
+```
+
+
+## Mapeo de observaciones
+
+Para empezar vamos a precisar un mapa de Uruguay. Luego vamos a generar un mapa de distribución por especie. También podemos calcular un mapa de densidad de registros y de riqueza por grilla. Para esto, vamos a tener que crear una grilla para Uruguay que tenga un tamaño de 10x10km (por ejemplo). 
+
+```{r}
+#| label: mapeo-de-observaciones
+#| warning: false
+#| message: false
+
+
+```
