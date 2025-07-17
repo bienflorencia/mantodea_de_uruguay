@@ -30,6 +30,8 @@ editor_options:
 
 library(patchwork)
 library(janitor)
+library(httr)
+library(jsonlite)
 library(lubridate)
 library(tmap)
 tmap_mode('view')
