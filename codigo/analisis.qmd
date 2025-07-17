@@ -23,6 +23,8 @@ editor_options:
 
 ## Librerías de R
 
+Este código que sigue, es donde leemos las librerías o paquetes de R.
+
 ```{r}
 #| label: libraries
 #| warning: false
@@ -49,11 +51,22 @@ Para la descarga vamos a usar funciones hechas para descargar datos mediante la 
 Las funciones que vamos a usar van a estar en la carpeta code/funciones del repositorio de GitHub. Pueden ver acá ejemplos de reportes hechos usando estas funciones: <https://bienflorencia.github.io/LatinR2024/>.   
 
 ```{r}
+source("codigo/funciones.R")
+```
+
+```{r}
 #| label: datos-inat
 #| warning: false
 #| message: false
 
+id_proyecto <- 'mantodea-de-uruguay'
+datos_mantodea <- getProjectData(id_proyecto)
 
+# guardo los datos como un archivo de R
+saveRDS(datos_mantodea, 'datos/datos_mantodea.rds')
+
+# guardo los datos como un archivo CSV
+write_csv(datos_mantodea, 'datos/datos_mantodea.csv')
 ```
 
 ### Otros datos
