@@ -10,7 +10,12 @@ format:
     code-fold: true
 self-contained: true
 editor: source
-author: 'Florencia Grattarola'
+authors: 
+  - 'Marianela Larramendy'
+  - 'Gabriela Rivero'
+  - 'Sabrina Romero'
+  - 'Mariana Trillo'
+  - 'Florencia Grattarola'
 date: "`r format(Sys.time(), '%Y-%m-%d')`"
 editor_options: 
   chunk_output_type: console
