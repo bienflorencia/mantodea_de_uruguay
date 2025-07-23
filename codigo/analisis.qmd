@@ -44,56 +44,154 @@ library(tidyverse)
 
 ## Datos
 
-### Descarga de datos de iNaturalist
+### Descarga de iNaturalist
 
 Para la descarga vamos a usar funciones hechas para descargar datos mediante la API de iNaturalist (<https://api.inaturalist.org/v1/docs/>). Esta parte también se podría hacer a través de la plataforma, pero de esta manera podemos automatizar la descarga y obtener directamente los campos que nos interesan.  
 
 Las funciones que vamos a usar van a estar en la carpeta code/funciones del repositorio de GitHub. Pueden ver acá ejemplos de reportes hechos usando estas funciones: <https://bienflorencia.github.io/LatinR2024/>.   
 
 ```{r}
+#| eval: false
 source("codigo/funciones.R")
 ```
 
 ```{r}
 #| label: datos-inat
+#| eval: false
 #| warning: false
 #| message: false
 
 id_proyecto <- 'mantodea-de-uruguay'
 datos_mantodea <- getProjectData(id_proyecto)
+datos_mantodea_adultos <- getProjectDataWithAnnotation(id_proyecto,
+                                                       annotation_id = 1,
+                                                       annotation_value = 2)
 
 # guardo los datos como un archivo de R
 saveRDS(datos_mantodea, 'datos/datos_mantodea.rds')
+saveRDS(datos_mantodea_adultos, 'datos/datos_mantodea_adultos.rds')
 
 # guardo los datos como un archivo CSV
 write_csv(datos_mantodea, 'datos/datos_mantodea.csv')
 ```
 
-### Otros datos
-
-```{r}
-#| label: datos-otros
-#| warning: false
-#| message: false
-
-
-```
-
-## Limpieza de datos 
+### Exploración
 
 Vamos a chequear una serie de campos y filtrar los datos de acuerdo a nuestras preferencias. Por ejemplo, sobre los campos: `captive`, `observed_on`, `taxon_rank`, `research_quality`, y `geoprivacy`, entre otros.
 
 ```{r}
-#| label: limpieza-de-datos
+#| label: datos-inat-exploracion
+#| eval: false
 #| warning: false
 #| message: false
 
+datos_mantodea <- readRDS('datos/datos_mantodea.rds')
+datos_mantodea_adultos <- readRDS('datos/datos_mantodea_adultos.rds')
+
+# exploro los datos (dos formas de hacer lo mismo)
+view(datos_mantodea)
+datos_mantodea %>% view()
+
+# selecciono columnas
+datos_mantodea %>% select(taxon_name, user_login)
+
+# filtro filas según valores de ciertas columnas
+datos_mantodea %>% filter(taxon_name == 'Coptopteryx gayi')
+
+# ¿cuántos registros de Coptopteryx gayi hay?
+datos_mantodea %>% 
+  filter(taxon_name == 'Coptopteryx gayi') %>% # filtro los que tienen Coptopteryx gayi como taxon_name
+  count() # cuento la cantidad de registros
+
+# ¿cuántos registros de cada especie hay?
+datos_mantodea %>% 
+  filter(taxon_rank == 'species') %>% # primero filtro sólo las especies
+  group_by(taxon_name) %>% # agrupo por el nombre de la especie
+  count() # cuento la cantidad de registros por especie
+
+# ¿qué taxones tienen menos de 5 registros en toda la plataforma?
+datos_mantodea %>% 
+  filter(observations_count < 5) %>% 
+  select(taxon_name, observations_count, user_login) # selecciono solo algunos campos
+
+# ¿cuántos registros tienen grado de investigación y cuántos necesitan ID?
+datos_mantodea %>% 
+  group_by(quality_grade) %>% 
+  count()
+
+# ¿cuántos registros hay para cada nivel taxonómico?
+datos_mantodea %>% 
+  group_by(taxon_rank) %>% 
+  count()
+
+# ¿cuántos registros de individuos "cautivos o cultivados" hay?
+datos_mantodea %>% 
+  group_by(captive) %>% 
+  count()
 ```
 
+Estos son los registros que están a nivel de especie pero todavía necesitan identificación. Sería bueno revisarlos.
+
+```{r}
+#| label: datos-para-revisar
+#| eval: false
+#| warning: false
+#| message: false
+
+# para revisar
+datos_mantodea %>% 
+    filter(quality_grade == 'needs_id') %>% 
+    filter(taxon_rank == 'species') %>% view() 
+```
+
+### Limpieza final
+
+Finalmente, limpio los datos y los guardo.
+
+```{r}
+#| label: datos-limpios
+#| eval: false
+#| warning: false
+#| message: false
+
+# hago el filtrado final y lo guardo en un nuevo objeto
+datos_mantodea_limpios <- datos_mantodea %>% 
+  filter(taxon_rank == 'species') %>% 
+  filter(quality_grade == 'research') %>% 
+  filter(is.na(geoprivacy)) %>% # esto es igual a hacer: filter(geoprivacy != 'obscured')
+  select(observation_id, taxon_name, observed_on, user_login,
+         latitude, longitude, state_name)
+
+# hago el filtrado final y lo guardo en un nuevo objeto
+datos_mantodea_adultos_limpios <- datos_mantodea_adultos %>% 
+  filter(taxon_rank == 'species') %>% 
+  filter(quality_grade == 'research') %>% 
+  filter(is.na(geoprivacy)) %>% # esto es igual a hacer: filter(geoprivacy != 'obscured')
+  select(observation_id, taxon_name, observed_on, user_login,
+         latitude, longitude, state_name)
+
+# guardo los datos
+saveRDS(datos_mantodea_limpios, 'datos/datos_mantodea_limpios.rds')
+saveRDS(datos_mantodea_adultos_limpios, 'datos/datos_mantodea_adultos_limpios.rds')
+```
+
+### Datos espaciales
+
+Para poder mapear los datos vamos a precisar un mapa de Uruguay. Vamos a descargarlo usando el paquete [`geouy`](https://richdeto.github.io/geouy/).
+
+```{r}
+#| label: datos-mapa-uruguay
+#| warning: false
+#| message: false
+
+
+```
 
 ## Mapeo de observaciones
 
-Para empezar vamos a precisar un mapa de Uruguay. Luego vamos a generar un mapa de distribución por especie. También podemos calcular un mapa de densidad de registros y de riqueza por grilla. Para esto, vamos a tener que crear una grilla para Uruguay que tenga un tamaño de 10x10km (por ejemplo). 
+### Creación de objeto espacial
+
+Para generar un mapa de distribución por especie, primero tenemos que pasar los datos de texto (data.frame) a formato espacial, usando el paquete `sf`. 
 
 ```{r}
 #| label: mapeo-de-observaciones
@@ -102,3 +200,20 @@ Para empezar vamos a precisar un mapa de Uruguay. Luego vamos a generar un mapa 
 
 
 ```
+
+### Mapas
+
+Los mapas los vamos a crear usando el paquete `tmap`. Podemos crear una versión estática del mapa o una versión dinámica.
+
+```{r}
+#| label: mapas
+#| warning: false
+#| message: false
+
+```
+
+
+## Otros análisis espaciales posibles
+
+Densidad de registros y de riqueza por grilla. Para esto, vamos a tener que crear una grilla para Uruguay que tenga un tamaño de 10x10km (por ejemplo). 
+   
