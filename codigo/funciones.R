@@ -165,9 +165,10 @@ getProjectData <- function(project_ids){
   
   return(projectData)
 }
-getProjectDataWithAnnotation <- function(project_ids, annotation_id, annotation_value){
+getProjectDataWithAnnotation <- function(project_ids, annotation_id, annotation_values){
   
   project_ids <- str_c(project_ids, collapse=',')
+  annotation_values <- str_c(annotation_values, collapse=',')
   
   projectData <- tibble(observation_id = numeric(),
                         quality_grade = character(),
@@ -201,7 +202,7 @@ getProjectDataWithAnnotation <- function(project_ids, annotation_id, annotation_
   total_results <- GET(url = str_glue('{api}/?',
                                       'project_id={project_ids}&',
                                       'term_id={annotation_id}&',
-                                      'term_value_id={annotation_value}&',
+                                      'term_value_id={annotation_values}&',
                                       'page=1&',
                                       'per_page=1')) %>%
     content(as = "text") %>% fromJSON(flatten = TRUE)
@@ -216,7 +217,7 @@ getProjectDataWithAnnotation <- function(project_ids, annotation_id, annotation_
     call_url <- str_glue('{api}/?',
                          'project_id={project_ids}&',
                          'term_id={annotation_id}&',
-                         'term_value_id={annotation_value}&',
+                         'term_value_id={annotation_values}&',
                          'page={page}&',
                          'per_page={per_page}')
     

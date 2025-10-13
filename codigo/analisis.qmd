@@ -7,7 +7,7 @@ format:
     toc-location: right
     smooth-scroll: true
     html-math-method: katex
-    code-fold: true
+    code-fold: false
 self-contained: true
 editor: source
 authors: 
@@ -62,18 +62,30 @@ source("codigo/funciones.R")
 #| message: false
 
 id_proyecto <- 'mantodea-de-uruguay'
+
+# todos los registros de mantodea
 datos_mantodea <- getProjectData(id_proyecto)
-datos_mantodea_adultos <- getProjectDataWithAnnotation(id_proyecto,
-                                                       annotation_id = 1,
-                                                       annotation_value = 2)
 
-# guardo los datos como un archivo de R
+# los registros de mantodea de adultos y ninfas
+datos_mantodea_adultos_y_ninfas <- getProjectDataWithAnnotation(id_proyecto,
+                                                                annotation_id = 1,
+                                                                annotation_value = c(2,5))
+
+# guardo los datos como en formato RDS
 saveRDS(datos_mantodea, 'datos/datos_mantodea.rds')
-saveRDS(datos_mantodea_adultos, 'datos/datos_mantodea_adultos.rds')
-
-# guardo los datos como un archivo CSV
-write_csv(datos_mantodea, 'datos/datos_mantodea.csv')
+saveRDS(datos_mantodea_adultos_y_ninfas, 'datos/datos_mantodea_adultos_y_ninfas.rds')
 ```
+
+```{r}
+#| label: datos-inat-leer
+#| eval: true
+#| echo: false
+#| warning: false
+#| message: false
+
+datos_mantodea_adultos_y_ninfas <- readRDS('datos/datos_mantodea_adultos_y_ninfas.rds')
+```
+
 
 ### Exploración
 
@@ -85,47 +97,48 @@ Vamos a chequear una serie de campos y filtrar los datos de acuerdo a nuestras p
 #| warning: false
 #| message: false
 
-datos_mantodea <- readRDS('datos/datos_mantodea.rds')
-datos_mantodea_adultos <- readRDS('datos/datos_mantodea_adultos.rds')
-
 # exploro los datos (dos formas de hacer lo mismo)
-view(datos_mantodea)
-datos_mantodea %>% view()
+# view(datos_mantodea_adultos_y_ninfas)
+# datos_mantodea_adultos_y_ninfas %>% view()
 
 # selecciono columnas
-datos_mantodea %>% select(taxon_name, user_login)
+datos_mantodea_adultos_y_ninfas %>% 
+  select(taxon_name, user_login) %>% # me quedo con dos columnas
+  head(n=10) # me quedo con las 10 primeras filas
 
 # filtro filas según valores de ciertas columnas
-datos_mantodea %>% filter(taxon_name == 'Coptopteryx gayi')
+datos_mantodea_adultos_y_ninfas %>% 
+  filter(taxon_name == 'Coptopteryx gayi') %>% 
+  head(n=10)
 
 # ¿cuántos registros de Coptopteryx gayi hay?
-datos_mantodea %>% 
+datos_mantodea_adultos_y_ninfas %>% 
   filter(taxon_name == 'Coptopteryx gayi') %>% # filtro los que tienen Coptopteryx gayi como taxon_name
   count() # cuento la cantidad de registros
 
 # ¿cuántos registros de cada especie hay?
-datos_mantodea %>% 
+datos_mantodea_adultos_y_ninfas %>% 
   filter(taxon_rank == 'species') %>% # primero filtro sólo las especies
   group_by(taxon_name) %>% # agrupo por el nombre de la especie
   count() # cuento la cantidad de registros por especie
 
 # ¿qué taxones tienen menos de 5 registros en toda la plataforma?
-datos_mantodea %>% 
+datos_mantodea_adultos_y_ninfas %>% 
   filter(observations_count < 5) %>% 
   select(taxon_name, observations_count, user_login) # selecciono solo algunos campos
 
 # ¿cuántos registros tienen grado de investigación y cuántos necesitan ID?
-datos_mantodea %>% 
+datos_mantodea_adultos_y_ninfas %>% 
   group_by(quality_grade) %>% 
   count()
 
 # ¿cuántos registros hay para cada nivel taxonómico?
-datos_mantodea %>% 
+datos_mantodea_adultos_y_ninfas %>% 
   group_by(taxon_rank) %>% 
   count()
 
 # ¿cuántos registros de individuos "cautivos o cultivados" hay?
-datos_mantodea %>% 
+datos_mantodea_adultos_y_ninfas %>% 
   group_by(captive) %>% 
   count()
 ```
@@ -141,7 +154,7 @@ Estos son los registros que están a nivel de especie pero todavía necesitan id
 # para revisar
 datos_mantodea %>% 
     filter(quality_grade == 'needs_id') %>% 
-    filter(taxon_rank == 'species') %>% view() 
+    filter(taxon_rank == 'species')
 ```
 
 ### Limpieza final
@@ -150,29 +163,25 @@ Finalmente, limpio los datos y los guardo.
 
 ```{r}
 #| label: datos-limpios
-#| eval: false
+#| eval: true
 #| warning: false
 #| message: false
 
 # hago el filtrado final y lo guardo en un nuevo objeto
-datos_mantodea_limpios <- datos_mantodea %>% 
+datos_mantodea_adultos_y_ninfas_limpios <- datos_mantodea_adultos_y_ninfas %>% 
   filter(taxon_rank == 'species') %>% 
   filter(quality_grade == 'research') %>% 
   filter(is.na(geoprivacy)) %>% # esto es igual a hacer: filter(geoprivacy != 'obscured')
   select(observation_id, taxon_name, observed_on, user_login,
          latitude, longitude, state_name)
 
-# hago el filtrado final y lo guardo en un nuevo objeto
-datos_mantodea_adultos_limpios <- datos_mantodea_adultos %>% 
-  filter(taxon_rank == 'species') %>% 
-  filter(quality_grade == 'research') %>% 
-  filter(is.na(geoprivacy)) %>% # esto es igual a hacer: filter(geoprivacy != 'obscured')
-  select(observation_id, taxon_name, observed_on, user_login,
-         latitude, longitude, state_name)
+# estandarización de especies sinónimas
+datos_mantodea_adultos_y_ninfas_limpios <- datos_mantodea_adultos_y_ninfas_limpios %>% 
+  mutate(taxon_name = ifelse(taxon_name == 'Metaphotina brevipennis', 'Metaphotina bimaculata', taxon_name))
+
 
 # guardo los datos
-saveRDS(datos_mantodea_limpios, 'datos/datos_mantodea_limpios.rds')
-saveRDS(datos_mantodea_adultos_limpios, 'datos/datos_mantodea_adultos_limpios.rds')
+saveRDS(datos_mantodea_adultos_y_ninfas_limpios, 'datos/datos_mantodea_adultos_y_ninfas_limpios.rds')
 ```
 
 ### Datos espaciales
@@ -184,36 +193,388 @@ Para poder mapear los datos vamos a precisar un mapa de Uruguay. Vamos a descarg
 #| warning: false
 #| message: false
 
-
+uruguay <- geouy::load_geouy('Dptos', folder = 'datos/')
 ```
 
 ## Mapeo de observaciones
 
 ### Creación de objeto espacial
 
-Para generar un mapa de distribución por especie, primero tenemos que pasar los datos de texto (data.frame) a formato espacial, usando el paquete `sf`. 
+Para generar un mapa de distribución por especie, primero tenemos que pasar los datos de texto (`data.frame` o `tibble`) a formato espacial, usando el paquete `sf`. 
 
 ```{r}
 #| label: mapeo-de-observaciones
 #| warning: false
 #| message: false
 
+datos_mantodea_sf <- datos_mantodea_adultos_y_ninfas_limpios %>% 
+  st_as_sf(coords = c("longitude", "latitude")) %>% 
+  st_set_crs(4326) %>% # primero indico el sistema de coordenadas de los datos
+  st_transform(32721) # después proyecto las coordenadas a UTM 21 S
 
 ```
 
 ### Mapas
 
-Los mapas los vamos a crear usando el paquete `tmap`. Podemos crear una versión estática del mapa o una versión dinámica.
+Ahora que tenemos los datos en formato espacial, podemos probar con mapear los puntos. Los mapas los podemos crear usando los paquetes `ggplot` o `tmap` (que es específico para mapas). 
+
+ - `ggplot`
+
+Mapa sencillo
 
 ```{r}
-#| label: mapas
+#| label: mapa-ggplot
 #| warning: false
 #| message: false
 
+ggplot() +
+  geom_sf(data = uruguay) +
+  geom_sf(data = datos_mantodea_sf, 
+          aes(col = taxon_name))
 ```
 
+Un mapa con más detalles
+
+```{r}
+#| label: mapa-ggplot-nice
+#| warning: false
+#| message: false
+
+ggplot() +
+  geom_sf(data = uruguay, fill='white') +
+  geom_sf(data = datos_mantodea_sf, 
+          aes(col = taxon_name), alpha = 0.75, size = 2) + 
+  scale_color_brewer(palette = 'Paired') +
+  labs(col = '') +
+  theme_bw()
+```
+
+  - `tmap` 
+
+Podemos crear una versión estática del mapa o una versión dinámica.
+
+```{r}
+#| label: mapa-tmap-dynamic
+#| warning: false
+#| message: false
+
+tmap_mode('view')
+tm_shape(datos_mantodea_sf) +
+  tm_dots('taxon_name', 
+          size = 0.5, fill_alpha = .75,
+          fill.scale = tm_scale(values = 'brewer.paired'),
+          fill.legend = tm_legend(title = '',
+                                  frame=F)) +  
+  tm_layout(legend.outside = T,  frame=F) 
+```
+
+```{r}
+#| label: mapa-tmap-static
+#| warning: false
+#| message: false
+
+tmap_mode('plot')
+
+tm_shape(uruguay) +
+  tm_borders(col = 'grey45', lwd=0.5) +
+tm_shape(datos_mantodea_sf) +
+  tm_dots('taxon_name', 
+          size = 0.5, fill_alpha = .75,
+          fill.scale = tm_scale(values = 'brewer.paired'),
+          fill.legend = tm_legend(title = '',
+                                  frame=F)) +  
+  tm_layout(legend.outside = T,  frame=F) 
+```
 
 ## Otros análisis espaciales posibles
 
-Densidad de registros y de riqueza por grilla. Para esto, vamos a tener que crear una grilla para Uruguay que tenga un tamaño de 10x10km (por ejemplo). 
-   
+### Densidad por departamento
+
+Para esto vamos a hacer un *join* espacial y contar la cantidad de registros, especies y usuarios registrando por departamento.
+
+```{r}
+#| label: densidad-por-departamento
+#| warning: false
+#| message: false
+
+registros_por_departamento <- st_join(uruguay, datos_mantodea_sf) %>% 
+  group_by(gid) %>% 
+  summarise(n_registros = n(),
+            n_especies = n_distinct(taxon_name),
+            n_usuarios = n_distinct(user_login))
+```
+
+#### Mapas
+
+Ahora podemos mapear los valores: registros, especies, y usuarios.
+
+```{r}
+#| label: departamento-mapa-registros
+#| warning: false
+#| message: false
+
+tm_shape(registros_por_departamento) +
+    tm_polygons(
+        fill = "n_registros",
+        fill.scale = tm_scale_continuous(
+            n = 7, 
+            values = "brewer.greens",
+            value.na = "grey90",
+            label.na = "0"
+        ),
+        fill_alpha = 0.9,
+        fill.legend = tm_legend(
+            title = "N registros",
+            item.space = 0,
+            item.na.space = 0,
+            reverse = TRUE,
+            frame = F
+        ),
+        col = "grey40",
+        col_alpha = 0.2
+    ) +
+    tm_layout(
+        #legend.position = c("left", "bottom"),
+        legend.outside = TRUE,
+        frame = F
+    ) + tm_options(component.autoscale = FALSE)
+```
+
+```{r}
+#| label: departamento-mapa-especies
+#| warning: false
+#| message: false
+
+tm_shape(registros_por_departamento) +
+    tm_polygons(
+        fill = "n_especies",
+        fill.scale = tm_scale_continuous(
+            n = 5, 
+            values = "brewer.reds",
+            value.na = "grey90",
+            label.na = "0"
+        ),
+        fill_alpha = 0.9,
+        fill.legend = tm_legend(
+            title = "N especies",
+            item.space = 0,
+            item.na.space = 0,
+            reverse = TRUE,
+            frame = F
+        ),
+        col = "grey40",
+        col_alpha = 0.2
+    ) +
+    tm_layout(
+        #legend.position = c("left", "bottom"),
+        legend.outside = TRUE,
+        frame = F
+    ) + tm_options(component.autoscale = FALSE)
+```
+
+```{r}
+#| label: departamento-mapa-usuarios
+#| warning: false
+#| message: false
+
+tm_shape(registros_por_departamento) +
+    tm_polygons(
+        fill = "n_usuarios",
+        fill.scale = tm_scale_continuous(
+            n = 7, 
+            values = "brewer.blues",
+            value.na = "grey90",
+            label.na = "0"
+        ),
+        fill_alpha = 0.9,
+        fill.legend = tm_legend(
+            title = "N usuarios",
+            item.space = 0,
+            item.na.space = 0,
+            reverse = TRUE,
+            frame = F
+        ),
+        col = "grey40",
+        col_alpha = 0.2
+    ) +
+    tm_layout(
+        #legend.position = c("left", "bottom"),
+        legend.outside = TRUE,
+        frame = F
+    ) + tm_options(component.autoscale = FALSE)
+```
+
+### Densidad por grilla
+
+Para esto, vamos a tener que crear una grilla para Uruguay que tenga un tamaño de 25x25km (por ejemplo, que son 25,000 metros). 
+
+```{r}
+#| label: grilla
+#| warning: false
+#| message: false
+
+grillas_uruguay <- st_make_grid(st_union(uruguay), 
+             cellsize = 25000,
+             square = F) %>% 
+  st_intersection(st_union(uruguay)) %>% 
+  st_sf(gridID=1:length(.)) # necesario para el join!
+
+```
+
+Ahora hacemos un *join* espacial, haciendo uso de la identidad de la grilla (`gridID`) y contando la cantidad de registros, especies y usuarios por grilla.
+
+```{r}
+#| label: grilla-join
+#| warning: false
+#| message: false
+
+registros_por_grilla <- st_join(grillas_uruguay, datos_mantodea_sf) %>% 
+  group_by(gridID) %>% 
+  summarise(n_registros = ifelse(n_distinct(taxon_name, na.rm=T)!=0, n(), 0),
+            n_especies = n_distinct(taxon_name, na.rm=T),
+            n_usuarios = n_distinct(user_login, na.rm=T)) 
+
+```
+
+#### Mapas
+
+Ahora podemos mapear los valores: registros, especies, y usuarios.
+
+```{r}
+#| label: grillas-mapa-registros
+#| warning: false
+#| message: false
+
+registros_por_grilla %>% 
+  mutate(n_registros = ifelse(n_registros ==0, NA, n_registros)) %>% 
+  tm_shape() +
+    tm_polygons(
+        fill = "n_registros",
+        fill.scale = tm_scale_continuous(
+            n = 5, 
+            values = "brewer.greens",
+            value.na = "grey90",
+            label.na = "0"
+        ),
+        fill_alpha = 0.9,
+        fill.legend = tm_legend(
+            title = "N registros",
+            item.space = 0,
+            item.na.space = 0,
+            reverse = TRUE,
+            frame = F
+        ),
+        col = "grey40",
+        col_alpha = 0.4
+    ) +
+  tm_shape(uruguay) +
+  tm_borders(col = "grey40", 
+             col_alpha = 0.6) +
+    tm_layout(
+        #legend.position = c("left", "bottom"),
+        legend.outside = TRUE,
+        frame = F
+    ) + tm_options(component.autoscale = FALSE)
+```
+
+```{r}
+#| label: grillas-mapa-especies
+#| warning: false
+#| message: false
+
+registros_por_grilla %>% 
+  mutate(n_especies = ifelse(n_especies ==0, NA, n_especies)) %>% 
+  tm_shape() +
+    tm_polygons(
+        fill = "n_especies",
+        fill.scale = tm_scale_continuous(
+            n = 5, 
+            values = "brewer.reds",
+            value.na = "grey90",
+            label.na = "0"
+        ),
+        fill_alpha = 0.9,
+        fill.legend = tm_legend(
+            title = "N especies",
+            item.space = 0,
+            item.na.space = 0,
+            reverse = TRUE,
+            frame = F
+        ),
+        col = "grey40",
+        col_alpha = 0.4
+    ) +
+  tm_shape(uruguay) +
+  tm_borders(col = "grey40", 
+             col_alpha = 0.6) +
+    tm_layout(
+        #legend.position = c("left", "bottom"),
+        legend.outside = TRUE,
+        frame = F
+    ) + tm_options(component.autoscale = FALSE)
+```
+
+```{r}
+#| label: grillas-mapa-usuarios
+#| warning: false
+#| message: false
+
+registros_por_grilla %>% 
+  mutate(n_usuarios = ifelse(n_usuarios ==0, NA, n_usuarios)) %>% 
+  tm_shape() +
+    tm_polygons(
+        fill = "n_usuarios",
+        fill.scale = tm_scale_continuous(
+            n = 5, 
+            values = "brewer.blues",
+            value.na = "grey90",
+            label.na = "0"
+        ),
+        fill_alpha = 0.9,
+        fill.legend = tm_legend(
+            title = "N usuarios",
+            item.space = 0,
+            item.na.space = 0,
+            reverse = TRUE,
+            frame = F
+        ),
+        col = "grey40",
+        col_alpha = 0.4
+    ) +
+  tm_shape(uruguay) +
+  tm_borders(col = "grey40", 
+             col_alpha = 0.6) +
+    tm_layout(
+        #legend.position = c("left", "bottom"),
+        legend.outside = TRUE,
+        frame = F
+    ) + tm_options(component.autoscale = FALSE)
+```
+
+## Datos de la literatura
+
+*Correr esta parte siguiendo los pasos anteriores*
+
+### Leer los datos
+
+```{r}
+
+# datos_literatura <- read_csv('datos/xxxxxxxxxxx.csv')
+# datos_literatura <- readxl::read_excel('datos/xxxxxxxxxxx.xlsx')
+
+```
+
+### Transformar los datos en un objeto espacial
+
+```{r}
+
+```
+
+### Mapas
+
+```{r}
+
+# conteos por departamento (uruguay)
+
+# conteos por grilla (grillas_uruguay)
+```
