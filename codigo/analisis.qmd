@@ -568,13 +568,14 @@ registros_por_grilla %>%
 
 ```{r}
 
+# tener en cuenta qué campos representan latitud y longitud
+
 ```
 
 ### Mapas
 
 ```{r}
 
-# conteos por departamento (uruguay)
-
-# conteos por grilla (grillas_uruguay)
+# por departamento (uruguay)
+# por grilla (grillas_uruguay)
 ```
