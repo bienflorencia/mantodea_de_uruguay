@@ -1,6 +1,6 @@
 # Mantodea de Uruguay en NaturalistaUY
 
-*Marianela Larramendy*, *Gabriela Rivero*, *Sabrina Romero*, *Florencia Grattarola <a dir="ltr" href="http://orcid.org/0000-0001-8282-5732" target="_blank"><img class="is-rounded" src="https://upload.wikimedia.org/wikipedia/commons/0/06/ORCID_iD.svg" width="15"></a>* & *Mariana Trillo*
+*Florencia Grattarola <a dir="ltr" href="http://orcid.org/0000-0001-8282-5732" target="_blank"><img class="is-rounded" src="https://upload.wikimedia.org/wikipedia/commons/0/06/ORCID_iD.svg" width="15"></a>*, *Marianela Larramendy*, *Gabriela Rivero*, *Sabrina Romero* & *Mariana Trillo*
 
 En este repositorio se encuentran los datos y el código para reproducir el estudio sobre observaciones en NaturalistaUY del grupo *Mantodea* en Uruguay.
 
