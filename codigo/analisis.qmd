@@ -11,11 +11,11 @@ format:
 self-contained: true
 editor: source
 authors: 
+  - 'Florencia Grattarola'
   - 'Marianela Larramendy'
   - 'Gabriela Rivero'
   - 'Sabrina Romero'
   - 'Mariana Trillo'
-  - 'Florencia Grattarola'
 date: "`r format(Sys.time(), '%Y-%m-%d')`"
 editor_options: 
   chunk_output_type: console
@@ -193,7 +193,8 @@ Para poder mapear los datos vamos a precisar un mapa de Uruguay. Vamos a descarg
 #| warning: false
 #| message: false
 
-uruguay <- geouy::load_geouy('Dptos', folder = 'datos/')
+departamentos <- geouy::load_geouy('Departamentos', folder = 'datos/')
+uruguay <- nngeo::st_remove_holes(st_union(departamentos))
 ```
 
 ## Mapeo de observaciones
@@ -297,7 +298,7 @@ Para esto vamos a hacer un *join* espacial y contar la cantidad de registros, es
 #| warning: false
 #| message: false
 
-registros_por_departamento <- st_join(uruguay, datos_mantodea_sf) %>% 
+registros_por_departamento <- st_join(departamentos, datos_mantodea_sf) %>% 
   group_by(gid) %>% 
   summarise(n_registros = n(),
             n_especies = n_distinct(taxon_name),
@@ -413,10 +414,10 @@ Para esto, vamos a tener que crear una grilla para Uruguay que tenga un tamaño 
 #| warning: false
 #| message: false
 
-grillas_uruguay <- st_make_grid(st_union(uruguay), 
-             cellsize = 25000,
-             square = F) %>% 
-  st_intersection(st_union(uruguay)) %>% 
+grillas_uruguay <- st_make_grid(uruguay,
+                                cellsize = 25000,
+                                square = F) %>% 
+  st_intersection(uruguay) %>% 
   st_sf(gridID=1:length(.)) # necesario para el join!
 
 ```
@@ -467,7 +468,7 @@ registros_por_grilla %>%
         col = "grey40",
         col_alpha = 0.4
     ) +
-  tm_shape(uruguay) +
+  tm_shape(departamentos) +
   tm_borders(col = "grey40", 
              col_alpha = 0.6) +
     tm_layout(
@@ -504,7 +505,7 @@ registros_por_grilla %>%
         col = "grey40",
         col_alpha = 0.4
     ) +
-  tm_shape(uruguay) +
+  tm_shape(departamentos) +
   tm_borders(col = "grey40", 
              col_alpha = 0.6) +
     tm_layout(
@@ -541,7 +542,7 @@ registros_por_grilla %>%
         col = "grey40",
         col_alpha = 0.4
     ) +
-  tm_shape(uruguay) +
+  tm_shape(departamentos) +
   tm_borders(col = "grey40", 
              col_alpha = 0.6) +
     tm_layout(
